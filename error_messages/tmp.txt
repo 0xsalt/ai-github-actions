@@ -1,0 +1,69 @@
+openapi: 3.1.1
+info: { title: GitHub Contents MVP, version: "1.0.0" }
+servers: [{ url: https://api.github.com }]
+components:
+  securitySchemes:
+    GitHubToken:
+      type: http
+      scheme: bearer
+      bearerFormat: token
+security:
+  - GitHubToken: []
+paths:
+  /repos/{owner}/{repo}/contents/{path}:
+    get:
+      operationId: GetContent
+      summary: Get file or directory contents
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          schema: { type: string, default: saltedkeys }
+        - name: repo
+          in: path
+          required: true
+          schema: { type: string, default: kgraphql }
+        - name: path
+          in: path
+          required: true
+          schema: { type: string }
+        - name: ref
+          in: query
+          required: false
+          schema: { type: string }
+      responses:
+        "200":
+          description: OK
+    put:
+      operationId: PutContent
+      x-openai-isConsequential: true
+      summary: Create or update a file (base64 content)
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          schema: { type: string, default: saltedkeys }
+        - name: repo
+          in: path
+          required: true
+          schema: { type: string, default: kgraphql }
+        - name: path
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [message, content]
+              properties:
+                message: { type: string }
+                content: { type: string, description: base64-encoded file content }
+                sha:     { type: string, description: Required when updating an existing file }
+                branch:  { type: string, description: Target branch (defaults to repo default) }
+      responses:
+        "201": { description: Created }
+        "200": { description: Updated }
+

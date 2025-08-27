@@ -1,0 +1,33 @@
+name: CI (manual)
+
+on:
+  workflow_dispatch:
+    inputs:
+      env:
+        description: "Target environment"
+        required: false
+        default: "dev"
+      verbose:
+        description: "Enable debug output"
+        required: false
+        default: "false"
+
+# Optional but recommended: keep permissions tight
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Show inputs
+        run: |
+          echo "env=${{ github.event.inputs.env }}"
+          echo "verbose=${{ github.event.inputs.verbose }}"
+      - name: Checkout (if you need repo files)
+        uses: actions/checkout@v4
+      - name: Example step
+        run: |
+          echo "Hello from ${{ github.repository }} on ref ${{ github.ref }}"
+

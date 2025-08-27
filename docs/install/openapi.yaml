@@ -1,0 +1,468 @@
+openapi: 3.1.1
+info:
+  title: GitHub Actions API for GPT
+  version: 1.0.0
+  description: |
+    Minimal GitHub Actions surface for Custom GPTs:
+    - List workflows in a repo
+    - Trigger a workflow_dispatch run
+    - Get file or directory contents
+    - Create or update files
+servers:
+  - url: https://api.github.com
+components:
+  securitySchemes:
+    GitHubToken:
+      type: http
+      scheme: bearer
+      bearerFormat: token
+  schemas:
+    ErrorResponse:
+      type: object
+      properties:
+        message:
+          type: string
+        documentation_url:
+          type: string
+security:
+  - GitHubToken: []
+
+paths:
+  /repos/{owner}/{repo}/actions/workflows:
+    get:
+      operationId: ListRepositoryWorkflows
+      x-openai-isConsequential: false
+      summary: List repository workflows
+      description: Lists the workflows configured in a repository.
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          description: GitHub username or org
+          schema:
+            type: string
+            default: saltedkeys         # <-- set your default here
+          example: "saltedkeys"
+        - name: repo
+          in: path
+          required: true
+          description: Repository name
+          schema:
+            type: string
+            default: kgraphql           # <-- and here
+          example: "kgraphql"
+      responses:
+        '200':
+          description: Workflows list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total_count:
+                    type: integer
+                  workflows:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:        { type: integer }
+                        name:      { type: string }
+                        state:     { type: string }
+                        url:       { type: string }
+                        html_url:  { type: string }
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+        '403':
+          description: Forbidden (insufficient repo/actions permissions)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+        '404':
+          description: Repo not found
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+
+  /repos/{owner}/{repo}/actions/workflows/{workflow_id}/dispatches:
+    post:
+      operationId: DispatchWorkflow
+      x-openai-isConsequential: true
+      summary: Trigger a workflow_dispatch run
+      description: |
+        Manually triggers a workflow (by numeric ID or file name, e.g. ci.yml) on a specific ref.
+        Requires token with repo scope; for fine-grained PAT, Actions:write.
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          description: GitHub username or org
+          schema:
+            type: string
+            default: saltedkeys
+        - name: repo
+          in: path
+          required: true
+          description: Repository name
+          schema:
+            type: string
+            default: kgraphql
+        - name: workflow_id
+          in: path
+          required: true
+          description: Workflow file name (e.g., ci.yml) or numeric workflow ID
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [ref]
+              properties:
+                ref:
+                  type: string
+                  description: Branch or tag to run on (e.g., main)
+                  example: main
+                inputs:
+                  type: object
+                  additionalProperties: true
+                  description: Key/value inputs defined in the workflow_dispatch block
+                  example:
+                    env: dev
+                    verbose: "false"
+      responses:
+        '204':
+          description: Dispatched successfully (no content)
+        '202':
+          description: Accepted (some gateways return 202)
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+        '403':
+          description: Forbidden (missing Actions write)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+        '404':
+          description: Repo or workflow not found
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+        '422':
+          description: Validation failed (bad ref or inputs)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+
+  /repos/{owner}/{repo}/actions/workflows/{workflow_id}/runs:
+    get:
+      operationId: ListWorkflowRuns
+      x-openai-isConsequential: false
+      summary: List recent runs for a workflow
+      description: Useful to verify that a dispatch created a run.
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          schema:
+            type: string
+            default: saltedkeys
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+            default: kgraphql
+        - name: workflow_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: per_page
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 5
+            minimum: 1
+            maximum: 100
+        - name: event
+          in: query
+          required: false
+          schema:
+            type: string
+            default: "workflow_dispatch"
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total_count: { type: integer }
+                  workflow_runs:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:          { type: integer }
+                        name:        { type: string }
+                        head_branch: { type: string }
+                        status:      { type: string }
+                        conclusion:  { type: string }
+                        html_url:    { type: string }
+                        created_at:
+                          type: string
+                          format: date-time
+                        event:       { type: string }
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+
+  /repos/{owner}/{repo}/contents/{path}:
+    get:
+      operationId: GetContent
+      x-openai-isConsequential: false
+      summary: Get file or directory contents
+      description: Retrieves the contents of a file or directory in a repository.
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          description: GitHub username or org
+          schema:
+            type: string
+            default: saltedkeys
+        - name: repo
+          in: path
+          required: true
+          description: Repository name
+          schema:
+            type: string
+            default: kgraphql
+        - name: path
+          in: path
+          required: true
+          description: Path to the file or directory
+          schema:
+            type: string
+        - name: ref
+          in: query
+          required: false
+          description: Branch, tag, or commit SHA
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  type: { type: string }
+                  encoding: { type: string }
+                  size: { type: integer }
+                  name: { type: string }
+                  path: { type: string }
+                  content: { type: string }
+                  sha: { type: string }
+                  url: { type: string }
+                  git_url: { type: string }
+                  html_url: { type: string }
+                  download_url: { type: string }
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+    put:
+      operationId: PutContent
+      x-openai-isConsequential: true
+      summary: Create or update a file (base64 content)
+      description: |
+        Creates or updates a file in a repository.
+        Content must be base64-encoded.
+        SHA is required when updating an existing file.
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          description: GitHub username or org
+          schema:
+            type: string
+            default: saltedkeys
+        - name: repo
+          in: path
+          required: true
+          description: Repository name
+          schema:
+            type: string
+            default: kgraphql
+        - name: path
+          in: path
+          required: true
+          description: Path to the file
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [message, content]
+              properties:
+                message:
+                  type: string
+                  description: Commit message
+                content:
+                  type: string
+                  description: Base64-encoded file content
+                sha:
+                  type: string
+                  description: Required when updating an existing file
+                branch:
+                  type: string
+                  description: Target branch (defaults to repo default)
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  content:
+                    type: object
+                    properties:
+                      name: { type: string }
+                      path: { type: string }
+                      sha: { type: string }
+                      size: { type: integer }
+                      url: { type: string }
+                      html_url: { type: string }
+                      git_url: { type: string }
+                      download_url: { type: string }
+                      type: { type: string }
+                      _links:
+                        type: object
+                        properties:
+                          self: { type: string }
+                          git: { type: string }
+                          html: { type: string }
+                  commit:
+                    type: object
+                    properties:
+                      sha: { type: string }
+                      url: { type: string }
+                      html_url: { type: string }
+                      author:
+                        type: object
+                        properties:
+                          name: { type: string }
+                          email: { type: string }
+                          date: { type: string }
+                      committer:
+                        type: object
+                        properties:
+                          name: { type: string }
+                          email: { type: string }
+                          date: { type: string }
+                      message: { type: string }
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  content:
+                    type: object
+                    properties:
+                      name: { type: string }
+                      path: { type: string }
+                      sha: { type: string }
+                      size: { type: integer }
+                      url: { type: string }
+                      html_url: { type: string }
+                      git_url: { type: string }
+                      download_url: { type: string }
+                      type: { type: string }
+                      _links:
+                        type: object
+                        properties:
+                          self: { type: string }
+                          git: { type: string }
+                          html: { type: string }
+                  commit:
+                    type: object
+                    properties:
+                      sha: { type: string }
+                      url: { type: string }
+                      html_url: { type: string }
+                      author:
+                        type: object
+                        properties:
+                          name: { type: string }
+                          email: { type: string }
+                          date: { type: string }
+                      committer:
+                        type: object
+                        properties:
+                          name: { type: string }
+                          email: { type: string }
+                          date: { type: string }
+                      message: { type: string }
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+        '422':
+          description: Validation failed
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+

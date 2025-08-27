@@ -1,0 +1,10 @@
+load_on_start:
+  path: assistant/default-note.md
+  branch: main
+commit_prefs:
+  branch_prefix: "gpt/"
+  default_base: "main"
+quicknote:
+  target_dir: "inbox"
+  filename_pattern: "qn-${YYYY}-${MM}-${DD}-${hh}${mm}${ss}.md"
+

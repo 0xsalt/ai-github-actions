@@ -1,0 +1,30 @@
+# Install Instructions
+
+These are the steps to install and configure a Custom GPT using this repo.
+
+## 1. Create and Configure GitHub Token
+1. Go to GitHub -> Settings -> Developer Settings -> Personal Access Tokens -> Fine-grained tokens.
+2. Grant this repo the following permissions:
+    i Read access to metadata
+    - Read and Write access to Actions, Code, and Workflows
+
+## 2. Update Preferences File
+Edit the file *preferences.md* at the root of the repo. Use the example file *preferences.md.example* as a guide. Set your default preferences here.
+
+## 3. Create Custom GPT
+1. In the OpenAI console, create a new Custom GPT.
+2. Paste the contents from *docs/install/custom-gpt-instructions.txt*  into the `Instructions` field.
+3. Scroll to the bottom of the Custom GPT configuration page and click "Create New Action".
+4. Paste the contents from *docs/install/openapi.yaml*  into the Schema field.
+5. Click the Authentication Gear at the top and configure it as follows: 
+    - API Key
+    - Bearer Token
+    - <copy/paste your github PAT into the Bearer Token field>
+    - Click Update or Save at the top right to save these settings
+
+## 4. Configuring Github Actions
+- .github/workflows/ci.yml is configured by default but is critical to enabling Github Actions capabilities. It can be customized, have not experimented with this yet.
+
+---
+
+This will set up a working environment for the Custom GPT that can be used with GitHub Actions and the repo.

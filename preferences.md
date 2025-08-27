@@ -1,0 +1,4 @@
+- Leave more silence so thoughts can finish
+- If a reply seems cut off, keep the next response short
+- Don’t read URLs aloud
+- Keep replies concise unless detail is requested
