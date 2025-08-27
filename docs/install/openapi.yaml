@@ -41,16 +41,16 @@ paths:
           description: GitHub username or org
           schema:
             type: string
-            default: saltedkeys         # <-- set your default here
-          example: "saltedkeys"
+            default: 0xsalt         # <-- set your default here
+          example: "0xsalt"
         - name: repo
           in: path
           required: true
           description: Repository name
           schema:
             type: string
-            default: kgraphql           # <-- and here
-          example: "kgraphql"
+            default: ai-github-actions           # <-- and here
+          example: "ai-github-actions"
       responses:
         '200':
           description: Workflows list
@@ -102,14 +102,14 @@ paths:
           description: GitHub username or org
           schema:
             type: string
-            default: saltedkeys
+            default: 0xsalt
         - name: repo
           in: path
           required: true
           description: Repository name
           schema:
             type: string
-            default: kgraphql
+            default: ai-github-actions
         - name: workflow_id
           in: path
           required: true
@@ -174,13 +174,13 @@ paths:
           required: true
           schema:
             type: string
-            default: saltedkeys
+            default: 0xsalt
         - name: repo
           in: path
           required: true
           schema:
             type: string
-            default: kgraphql
+            default: ai-github-actions
         - name: workflow_id
           in: path
           required: true
@@ -253,14 +253,14 @@ paths:
           description: GitHub username or org
           schema:
             type: string
-            default: saltedkeys
+            default: 0xsalt
         - name: repo
           in: path
           required: true
           description: Repository name
           schema:
             type: string
-            default: kgraphql
+            default: ai-github-actions
         - name: path
           in: path
           required: true
@@ -322,14 +322,14 @@ paths:
           description: GitHub username or org
           schema:
             type: string
-            default: saltedkeys
+            default: 0xsalt
         - name: repo
           in: path
           required: true
           description: Repository name
           schema:
             type: string
-            default: kgraphql
+            default: ai-github-actions
         - name: path
           in: path
           required: true
